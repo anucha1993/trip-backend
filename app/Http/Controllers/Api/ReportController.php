@@ -25,7 +25,95 @@ class ReportController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $date = $data['date'] ?? Carbon::now()->toDateString();
+        return response()->json($this->buildDailyReport($data['date'] ?? Carbon::now()->toDateString()));
+    }
+
+    /**
+     * CSV export of the daily report (opens in Excel).
+     */
+    public function dailyExport(Request $request)
+    {
+        $data = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $report = $this->buildDailyReport($data['date'] ?? Carbon::now()->toDateString());
+
+        $statusLabels = [
+            'present' => 'มาปกติ',
+            'late' => 'มาสาย',
+            'absent' => 'ขาดงาน',
+            'leave' => 'ลา',
+            'holiday' => 'วันหยุด',
+            'weekly_off' => 'วันหยุดประจำสัปดาห์',
+            'alt_saturday_off' => 'เสาร์หยุด',
+        ];
+
+        $header = ['พนักงาน', 'ชื่อ-สกุล', 'รหัสพนักงาน', 'สถานะ', 'เข้างานครั้งแรก', 'ออกงานครั้งสุดท้าย', 'ชั่วโมงทำงาน'];
+
+        $rows = collect($report['rows'])->map(fn (array $row) => [
+            $row['display_name'],
+            $row['full_name'],
+            $row['employee_code'],
+            $statusLabels[$row['status']] ?? $row['status'],
+            $row['first_check_in'] ? Carbon::parse($row['first_check_in'])->format('H:i') : '',
+            $row['last_check_out'] ? Carbon::parse($row['last_check_out'])->format('H:i') : '',
+            $row['total_hours'],
+        ])->all();
+
+        return $this->csvResponse(
+            "daily-report-{$report['date']}.csv",
+            $header,
+            $rows
+        );
+    }
+
+    /**
+     * Monthly report: days present/late/absent/on-leave and total worked
+     * hours per employee, for one calendar month.
+     */
+    public function monthly(Request $request)
+    {
+        $data = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+        ]);
+
+        return response()->json($this->buildMonthlyReport($data['month'] ?? Carbon::now()->format('Y-m')));
+    }
+
+    /**
+     * CSV export of the monthly report (opens in Excel).
+     */
+    public function monthlyExport(Request $request)
+    {
+        $data = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+        ]);
+
+        $report = $this->buildMonthlyReport($data['month'] ?? Carbon::now()->format('Y-m'));
+
+        $header = ['พนักงาน', 'ชื่อ-สกุล', 'รหัสพนักงาน', 'มาปกติ (วัน)', 'มาสาย (วัน)', 'ขาดงาน (วัน)', 'ลา (วัน)', 'ชั่วโมงทำงานรวม'];
+
+        $rows = collect($report['rows'])->map(fn (array $row) => [
+            $row['display_name'],
+            $row['full_name'],
+            $row['employee_code'],
+            $row['days_present'],
+            $row['days_late'],
+            $row['days_absent'],
+            $row['days_leave'],
+            $row['total_hours'],
+        ])->all();
+
+        return $this->csvResponse(
+            "monthly-report-{$report['month']}.csv",
+            $header,
+            $rows
+        );
+    }
+
+    private function buildDailyReport(string $date): array
+    {
         $day = Carbon::parse($date);
 
         $calendar = new WorkCalendar(WorkSetting::current());
@@ -53,26 +141,17 @@ class ReportController extends Controller
             return $this->summarizeDay($employee, $records, $dayType, $leaveEmployeeIds->contains($employee->id), $calendar);
         })->values();
 
-        return response()->json([
+        return [
             'date' => $date,
             'day_type' => $dayType,
             'holiday_name' => $holidayName,
             'employee_count' => $rows->count(),
             'rows' => $rows,
-        ]);
+        ];
     }
 
-    /**
-     * Monthly report: days present/late/absent/on-leave and total worked
-     * hours per employee, for one calendar month.
-     */
-    public function monthly(Request $request)
+    private function buildMonthlyReport(string $month): array
     {
-        $data = $request->validate([
-            'month' => ['nullable', 'date_format:Y-m'],
-        ]);
-
-        $month = $data['month'] ?? Carbon::now()->format('Y-m');
         [$year, $monthNumber] = explode('-', $month);
 
         $monthStart = Carbon::createFromDate((int) $year, (int) $monthNumber, 1)->startOfMonth();
@@ -154,10 +233,28 @@ class ReportController extends Controller
             ];
         })->values();
 
-        return response()->json([
+        return [
             'month' => $month,
             'employee_count' => $rows->count(),
             'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Stream a UTF-8 (with BOM, so Excel renders Thai text correctly) CSV download.
+     */
+    private function csvResponse(string $filename, array $header, array $rows)
+    {
+        return response()->streamDownload(function () use ($header, $rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF"); // UTF-8 BOM
+            fputcsv($handle, $header);
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 

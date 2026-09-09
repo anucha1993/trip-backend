@@ -46,7 +46,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/locations/{location}/regenerate-token', [LocationController::class, 'regenerateToken']);
 
     Route::get('/reports/daily', [ReportController::class, 'daily']);
+    Route::get('/reports/daily/export', [ReportController::class, 'dailyExport']);
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+    Route::get('/reports/monthly/export', [ReportController::class, 'monthlyExport']);
 
     Route::get('/work-settings', [WorkSettingController::class, 'show']);
     Route::put('/work-settings', [WorkSettingController::class, 'update']);
