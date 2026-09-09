@@ -22,7 +22,9 @@ class EmployeeController extends Controller
             });
         }
 
-        return response()->json($query->paginate(20));
+        $perPage = max(1, min((int) $request->integer('per_page', 20), 100));
+
+        return response()->json($query->paginate($perPage));
     }
 
     public function show(Employee $employee)
