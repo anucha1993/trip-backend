@@ -18,8 +18,13 @@ class AttendanceController extends Controller
     {
         $data = $request->validate([
             'qr_token' => ['required', 'string'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            // Location is always required — the system must record where
+            // every check-in/out happened, not only for geofenced locations.
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ], [
+            'latitude.required' => 'จำเป็นต้องอนุญาตการเข้าถึงตำแหน่ง (Location) ก่อนลงเวลา',
+            'longitude.required' => 'จำเป็นต้องอนุญาตการเข้าถึงตำแหน่ง (Location) ก่อนลงเวลา',
         ]);
 
         // Accept either a raw token or a scanned URL containing ?token=...
@@ -32,6 +37,20 @@ class AttendanceController extends Controller
 
         if (! $location) {
             return response()->json(['message' => 'Invalid or inactive QR code.'], 422);
+        }
+
+        if ($location->hasGeofence()) {
+            $distance = $location->distanceInMetersFrom($data['latitude'], $data['longitude']);
+
+            if ($distance > $location->radius_meters) {
+                return response()->json([
+                    'message' => sprintf(
+                        'คุณอยู่นอกพื้นที่ที่กำหนดไว้ (ห่างจากจุดสแกนประมาณ %d เมตร ต้องอยู่ในระยะ %d เมตร)',
+                        round($distance),
+                        $location->radius_meters
+                    ),
+                ], 422);
+            }
         }
 
         $employee = $request->user();

@@ -36,4 +36,31 @@ class Location extends Model
     {
         return Str::random(48);
     }
+
+    public function hasGeofence(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null && $this->radius_meters !== null;
+    }
+
+    /**
+     * Great-circle (Haversine) distance in meters between this location and a given point.
+     */
+    public function distanceInMetersFrom(float $latitude, float $longitude): float
+    {
+        $earthRadiusMeters = 6371000;
+
+        $latFrom = deg2rad((float) $this->latitude);
+        $lonFrom = deg2rad((float) $this->longitude);
+        $latTo = deg2rad($latitude);
+        $lonTo = deg2rad($longitude);
+
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
+
+        $a = sin($latDelta / 2) ** 2
+            + cos($latFrom) * cos($latTo) * sin($lonDelta / 2) ** 2;
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadiusMeters * $c;
+    }
 }

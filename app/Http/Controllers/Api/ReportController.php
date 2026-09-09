@@ -286,6 +286,8 @@ class ReportController extends Controller
             'status' => $status,
             'first_check_in' => $firstCheckIn?->scanned_at?->toIso8601String(),
             'last_check_out' => $lastCheckOut?->scanned_at?->toIso8601String(),
+            'location' => $firstCheckIn?->location?->name,
+            'locations' => $records->pluck('location.name')->filter()->unique()->values(),
             'total_hours' => round($this->workedMinutes($records) / 60, 2),
             'events' => $records->map(fn (Attendance $a) => [
                 'type' => $a->type,
