@@ -293,6 +293,8 @@ class ReportController extends Controller
                 'type' => $a->type,
                 'scanned_at' => $a->scanned_at->toIso8601String(),
                 'location' => $a->location?->name,
+                'latitude' => $a->latitude !== null ? (float) $a->latitude : null,
+                'longitude' => $a->longitude !== null ? (float) $a->longitude : null,
             ])->values(),
         ];
     }
