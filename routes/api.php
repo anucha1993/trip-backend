@@ -4,8 +4,11 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\Auth\AdminAuthController;
 use App\Http\Controllers\Api\Auth\LineAuthController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\WorkSettingController;
 use Illuminate\Support\Facades\Route;
 
 // Note: /auth/line/redirect and /auth/line/callback are registered in
@@ -44,4 +47,15 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
 
     Route::get('/reports/daily', [ReportController::class, 'daily']);
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+
+    Route::get('/work-settings', [WorkSettingController::class, 'show']);
+    Route::put('/work-settings', [WorkSettingController::class, 'update']);
+
+    Route::get('/holidays', [HolidayController::class, 'index']);
+    Route::post('/holidays', [HolidayController::class, 'store']);
+    Route::delete('/holidays/{holiday}', [HolidayController::class, 'destroy']);
+
+    Route::get('/leaves', [LeaveRequestController::class, 'index']);
+    Route::post('/leaves', [LeaveRequestController::class, 'store']);
+    Route::delete('/leaves/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
 });

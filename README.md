@@ -43,8 +43,8 @@ APP_URL=http://localhost:1000
 FRONTEND_URL=http://localhost:1001      # ใช้สร้างลิงก์ redirect กลับ Next.js และ CORS
 
 DB_CONNECTION=mysql
-DB_HOST=...
-DB_DATABASE=tipose_emp
+DB_HOST=localhost
+DB_DATABASE=tipose_tipose_emp           # ชื่อ database จริงบน Plesk (ไม่ใช่ tipose_emp เฉยๆ)
 DB_USERNAME=tipose_emp
 DB_PASSWORD=...
 
@@ -53,25 +53,17 @@ LINE_CLIENT_SECRET=...
 LINE_REDIRECT_URI=http://localhost:1000/api/auth/line/callback
 ```
 
-### ⚠️ สถานะฐานข้อมูลจริง (MySQL) ที่ให้มา
+### ⚠️ Production DB บน Plesk — ยืนยันค่าที่ใช้งานได้จริงแล้ว
 
-ทดสอบเชื่อมต่อแล้วได้ error:
+ชื่อ database ที่ Plesk สร้างจริงคือ **`tipose_tipose_emp`** (ผูกกับ user `tipose_emp`) ไม่ใช่ `tipose_emp`
+เฉยๆ ตามที่ให้มาตอนแรก — เช็คได้จากหน้า Plesk → Databases
 
+ก่อน deploy ต้องรันบนเซิร์ฟเวอร์จริงเสมอ (หลังตั้งค่า `.env` ให้ตรงข้างบนแล้ว):
+
+```bash
+php artisan config:clear
+php artisan migrate --seed --force
 ```
-SQLSTATE[HY000] [1044] Access denied for user 'tipose_emp'@'%' to database 'tipose_emp'
-```
-
-หมายความว่า **username/password ถูกต้อง แต่ user ยังไม่มีสิทธิ์ (GRANT) บนฐานข้อมูลนี้** ต้องแก้ที่ฝั่ง
-เซิร์ฟเวอร์ MySQL (เช่นผ่าน phpMyAdmin/cPanel) ด้วยคำสั่ง:
-
-```sql
-GRANT ALL PRIVILEGES ON tipose_emp.* TO 'tipose_emp'@'%';
-FLUSH PRIVILEGES;
-```
-
-ระหว่างนี้ในเครื่อง dev ใช้ SQLite แทนชั่วคราว (`DB_CONNECTION=sqlite`) — โครงสร้างตารางเหมือนกันทุก
-ประการ พอแก้สิทธิ์ที่ฝั่ง MySQL เสร็จ ให้สลับ `.env` กลับไปใช้ค่า mysql ที่ comment ไว้แล้วรัน
-`php artisan migrate --seed` ได้ทันที
 
 ### ตั้งค่า LINE Login
 
