@@ -27,9 +27,19 @@ class LineAuthController extends Controller
         try {
             $lineUser = Socialite::driver('line')->user();
         } catch (\Throwable $e) {
-            Log::warning('LINE login failed: '.$e->getMessage());
+            Log::warning('LINE login failed: ['.get_class($e).'] '.$e->getMessage());
 
-            return redirect()->away($frontend.'/login?error=line_auth_failed');
+            // "invalid_grant" / "invalid authorization code" happens when the
+            // one-time LINE auth code was already consumed before this request
+            // — almost always caused by an in-app browser (e.g. LINE's own,
+            // or another app's) pre-fetching the callback link in the
+            // background before the user actually taps it.
+            $isReusedCode = str_contains($e->getMessage(), 'invalid_grant')
+                || str_contains($e->getMessage(), 'invalid authorization code');
+
+            return redirect()->away(
+                $frontend.'/login?error='.($isReusedCode ? 'code_reused' : 'line_auth_failed')
+            );
         }
 
         $employee = Employee::updateOrCreate(
