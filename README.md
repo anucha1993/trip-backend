@@ -1,4 +1,4 @@
-# Trip Time Attendance — Backend (Laravel)
+# TIP168 Time Attandence — Backend (Laravel)
 
 ระบบลงเวลาเข้า-ออกงานด้วยการสแกน QR Code พร้อม Auth พนักงานผ่าน LINE Login
 และระบบหลังบ้านสำหรับ SuperAdmin
