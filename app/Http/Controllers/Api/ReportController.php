@@ -211,7 +211,7 @@ class ReportController extends Controller
                     continue;
                 }
 
-                if ($calendar->isLate($firstCheckIn->scanned_at)) {
+                if ($calendar->isLate($firstCheckIn->scanned_at) && ! $firstCheckIn->is_manual) {
                     $daysLate++;
                 } else {
                     $daysPresent++;
@@ -273,7 +273,11 @@ class ReportController extends Controller
         } elseif ($onLeave) {
             $status = 'leave';
         } elseif ($firstCheckIn) {
-            $status = $calendar->isLate($firstCheckIn->scanned_at) ? 'late' : 'present';
+            // A manually-added entry is an excused/authorized note (e.g. went
+            // straight to a job site), so it never counts as "late".
+            $status = (! $firstCheckIn->is_manual && $calendar->isLate($firstCheckIn->scanned_at))
+                ? 'late'
+                : 'present';
         } else {
             $status = 'absent';
         }
