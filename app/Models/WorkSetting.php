@@ -12,6 +12,8 @@ class WorkSetting extends Model
         'late_grace_minutes',
         'weekly_off_day',
         'alt_saturday_enabled',
+        'alternate_scan_mode',
+        'min_scan_interval_minutes',
     ];
 
     protected function casts(): array
@@ -20,6 +22,8 @@ class WorkSetting extends Model
             'late_grace_minutes' => 'integer',
             'weekly_off_day' => 'integer',
             'alt_saturday_enabled' => 'boolean',
+            'alternate_scan_mode' => 'boolean',
+            'min_scan_interval_minutes' => 'integer',
         ];
     }
 
@@ -36,6 +40,8 @@ class WorkSetting extends Model
             'late_grace_minutes' => 0,
             'weekly_off_day' => 0,
             'alt_saturday_enabled' => true,
+            'alternate_scan_mode' => false,
+            'min_scan_interval_minutes' => 0,
         ]);
     }
 }

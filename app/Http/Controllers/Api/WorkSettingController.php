@@ -21,6 +21,8 @@ class WorkSettingController extends Controller
             'late_grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
             'weekly_off_day' => ['required', 'integer', 'min:0', 'max:6'],
             'alt_saturday_enabled' => ['required', 'boolean'],
+            'alternate_scan_mode' => ['required', 'boolean'],
+            'min_scan_interval_minutes' => ['required', 'integer', 'min:0', 'max:180'],
         ]);
 
         $settings = WorkSetting::current();
