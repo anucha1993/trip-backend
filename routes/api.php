@@ -50,6 +50,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
     Route::get('/reports/monthly/export', [ReportController::class, 'monthlyExport']);
 
+    Route::post('/attendance', [AttendanceController::class, 'storeManual']);
+    Route::delete('/attendance/{attendance}', [AttendanceController::class, 'destroyManual']);
+
     Route::get('/work-settings', [WorkSettingController::class, 'show']);
     Route::put('/work-settings', [WorkSettingController::class, 'update']);
 

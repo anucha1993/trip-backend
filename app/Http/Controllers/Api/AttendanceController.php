@@ -127,4 +127,49 @@ class AttendanceController extends Controller
 
         return response()->json($attendances);
     }
+
+    /**
+     * SuperAdmin manually adds a check-in/out for an employee who couldn't
+     * scan (e.g. went straight to a job site) — flagged as is_manual so
+     * reports can badge it distinctly from real QR scans.
+     */
+    public function storeManual(Request $request)
+    {
+        $data = $request->validate([
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'type' => ['required', 'in:check_in,check_out'],
+            'scanned_at' => ['required', 'date'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $scannedAt = Carbon::parse($data['scanned_at']);
+
+        $attendance = Attendance::create([
+            'employee_id' => $data['employee_id'],
+            'location_id' => null,
+            'type' => $data['type'],
+            'work_date' => $scannedAt->toDateString(),
+            'scanned_at' => $scannedAt,
+            'note' => $data['note'] ?? null,
+            'is_manual' => true,
+            'created_by_admin_id' => $request->user()->id,
+        ]);
+
+        return response()->json(['attendance' => $attendance], 201);
+    }
+
+    /**
+     * SuperAdmin removes a manually-added record (only manual entries can
+     * be deleted this way — real QR scans stay as an audit trail).
+     */
+    public function destroyManual(Attendance $attendance)
+    {
+        if (! $attendance->is_manual) {
+            return response()->json(['message' => 'ลบได้เฉพาะรายการที่เพิ่มด้วยมือเท่านั้น'], 422);
+        }
+
+        $attendance->delete();
+
+        return response()->json(['message' => 'ลบรายการแล้ว']);
+    }
 }

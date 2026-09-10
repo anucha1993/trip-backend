@@ -290,11 +290,14 @@ class ReportController extends Controller
             'locations' => $records->pluck('location.name')->filter()->unique()->values(),
             'total_hours' => round($this->workedMinutes($records) / 60, 2),
             'events' => $records->map(fn (Attendance $a) => [
+                'id' => $a->id,
                 'type' => $a->type,
                 'scanned_at' => $a->scanned_at->toIso8601String(),
                 'location' => $a->location?->name,
                 'latitude' => $a->latitude !== null ? (float) $a->latitude : null,
                 'longitude' => $a->longitude !== null ? (float) $a->longitude : null,
+                'is_manual' => $a->is_manual,
+                'note' => $a->note,
             ])->values(),
         ];
     }

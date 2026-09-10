@@ -16,6 +16,8 @@ class Attendance extends Model
         'latitude',
         'longitude',
         'note',
+        'is_manual',
+        'created_by_admin_id',
     ];
 
     protected function casts(): array
@@ -25,6 +27,7 @@ class Attendance extends Model
             'scanned_at' => 'datetime',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'is_manual' => 'boolean',
         ];
     }
 
@@ -36,5 +39,10 @@ class Attendance extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function createdByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'created_by_admin_id');
     }
 }
