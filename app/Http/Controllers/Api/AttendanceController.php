@@ -59,39 +59,28 @@ class AttendanceController extends Controller
         $workDate = $now->toDateString();
         $settings = WorkSetting::current();
 
-        $lastScan = Attendance::where('employee_id', $employee->id)
-            ->orderByDesc('scanned_at')
-            ->orderByDesc('id')
-            ->first();
+        // The scan's type is decided purely by which configured time window
+        // "now" falls into — not by scan order/count, so an employee can
+        // scan as many times as they like within a window.
+        $checkInStart = $now->copy()->setTimeFromTimeString($settings->check_in_window_start);
+        $checkInEnd = $now->copy()->setTimeFromTimeString($settings->check_in_window_end);
+        $checkOutStart = $now->copy()->setTimeFromTimeString($settings->check_out_window_start);
+        $checkOutEnd = $now->copy()->setTimeFromTimeString($settings->check_out_window_end);
 
-        if ($settings->min_scan_interval_minutes > 0 && $lastScan) {
-            $minutesSinceLast = $lastScan->scanned_at->diffInMinutes($now);
-
-            if ($minutesSinceLast < $settings->min_scan_interval_minutes) {
-                $wait = $settings->min_scan_interval_minutes - $minutesSinceLast;
-
-                return response()->json([
-                    'message' => sprintf('สแกนถี่เกินไป กรุณารออีกประมาณ %d นาทีแล้วลองใหม่', $wait),
-                ], 422);
-            }
-        }
-
-        if ($settings->alternate_scan_mode) {
-            // Toggle mode: alternate check-in/check-out every scan, for
-            // employers that track multiple in/out sessions per day
-            // (e.g. lunch breaks).
-            $lastToday = $lastScan && $lastScan->work_date->toDateString() === $workDate ? $lastScan : null;
-            $type = (! $lastToday || $lastToday->type === 'check_out') ? 'check_in' : 'check_out';
+        if ($now->between($checkInStart, $checkInEnd)) {
+            $type = 'check_in';
+        } elseif ($now->between($checkOutStart, $checkOutEnd)) {
+            $type = 'check_out';
         } else {
-            // Simple mode (default): only the first scan of the day is a
-            // check-in; every scan after that is a check-out, so the type
-            // never flips back to check-in — the last scan of the day is
-            // always what counts as the check-out time.
-            $hasScannedToday = Attendance::where('employee_id', $employee->id)
-                ->whereDate('work_date', $workDate)
-                ->exists();
-
-            $type = $hasScannedToday ? 'check_out' : 'check_in';
+            return response()->json([
+                'message' => sprintf(
+                    'นอกช่วงเวลาที่กำหนดให้สแกน (ช่วงเข้างาน %s-%s, ช่วงออกงาน %s-%s)',
+                    $settings->check_in_window_start,
+                    $settings->check_in_window_end,
+                    $settings->check_out_window_start,
+                    $settings->check_out_window_end
+                ),
+            ], 422);
         }
 
         $attendance = Attendance::create([
