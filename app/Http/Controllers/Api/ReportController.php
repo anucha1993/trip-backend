@@ -300,8 +300,10 @@ class ReportController extends Controller
     }
 
     /**
-     * Sum minutes between each check_in and the following check_out.
-     * An unmatched trailing check_in (no check_out yet) is ignored.
+     * Minutes between the day's first check-in and its last check-out.
+     * Only the first scan of a day is ever a check-in (see
+     * AttendanceController::scan), so there is at most one check-in to
+     * anchor from; every later scan is a check-out and the latest one wins.
      */
     private function workedMinutes(?Collection $records): int
     {
@@ -309,19 +311,15 @@ class ReportController extends Controller
             return 0;
         }
 
-        $sorted = $records->sortBy([['scanned_at', 'asc'], ['id', 'asc']])->values();
-        $minutes = 0;
-        $pendingCheckIn = null;
+        $firstCheckIn = $records->firstWhere('type', 'check_in');
+        $lastCheckOut = $records->where('type', 'check_out')->last();
 
-        foreach ($sorted as $record) {
-            if ($record->type === 'check_in') {
-                $pendingCheckIn = $record->scanned_at;
-            } elseif ($record->type === 'check_out' && $pendingCheckIn) {
-                $minutes += $pendingCheckIn->diffInMinutes($record->scanned_at);
-                $pendingCheckIn = null;
-            }
+        if (! $firstCheckIn || ! $lastCheckOut) {
+            return 0;
         }
 
-        return $minutes;
+        $minutes = $firstCheckIn->scanned_at->diffInMinutes($lastCheckOut->scanned_at, false);
+
+        return max($minutes, 0);
     }
 }

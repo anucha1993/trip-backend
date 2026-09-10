@@ -57,13 +57,15 @@ class AttendanceController extends Controller
         $now = Carbon::now();
         $workDate = $now->toDateString();
 
-        $lastToday = Attendance::where('employee_id', $employee->id)
+        // Only the first scan of the day is a check-in; every scan after
+        // that is a check-out, so the type never flips back to check-in
+        // no matter how many times the employee re-scans that day — the
+        // last scan is always what counts as the check-out time.
+        $hasScannedToday = Attendance::where('employee_id', $employee->id)
             ->whereDate('work_date', $workDate)
-            ->orderByDesc('scanned_at')
-            ->orderByDesc('id')
-            ->first();
+            ->exists();
 
-        $type = (! $lastToday || $lastToday->type === 'check_out') ? 'check_in' : 'check_out';
+        $type = $hasScannedToday ? 'check_out' : 'check_in';
 
         $attendance = Attendance::create([
             'employee_id' => $employee->id,
